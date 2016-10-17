@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="HeatMap">
+        <attr name="opacity" format="integer" />
+        <attr name="minOpacity" format="integer" />
+        <attr name="maxOpacity" format="integer" />
+        <attr name="blur" format="float" />
+        <attr name="radius" format="dimension" />
+    </declare-styleable>
+</resources>
