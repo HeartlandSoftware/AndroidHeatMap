@@ -25,6 +25,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
+import android.graphics.PorterDuff;
 import android.graphics.RadialGradient;
 import android.graphics.Shader;
 import android.util.AttributeSet;
@@ -46,6 +47,16 @@ public class HeatMap extends View implements View.OnTouchListener {
      * The data that will be displayed in the heat map.
      */
     private List<DataPoint> data;
+
+    /**
+     * A buffer for new data that hasn't been displayed yet.
+     */
+    private List<DataPoint> dataBuffer;
+
+    /**
+     * Whether the information stored in dataBuffer has changed.
+     */
+    private boolean dataModified = false;
 
     /**
      * The value that corresponds to the minimum of the gradient scale.
@@ -114,7 +125,16 @@ public class HeatMap extends View implements View.OnTouchListener {
      */
     private boolean needsRefresh = true;
 
+    /**
+     * Update the shadow layer when the size changes.
+     */
+    private boolean sizeChange = false;
+
     private OnMapClickListener mListener;
+
+    private Bitmap mShadow = null;
+
+    private Canvas mShadowCanvas = null;
 
     /**
      * Set the blur factor for the heat map. Must be between 0 and 1.
@@ -195,7 +215,8 @@ public class HeatMap extends View implements View.OnTouchListener {
      * @param point A new data point.
      */
     public void addData(DataPoint point) {
-        data.add(point);
+        dataBuffer.add(point);
+        dataModified = true;
     }
 
     /**
@@ -204,7 +225,8 @@ public class HeatMap extends View implements View.OnTouchListener {
      * Does not refresh the display. See {@link HeatMap#forceRefresh()} in order to redraw the heat map.
      */
     public void clearData() {
-        data.clear();
+        dataBuffer.clear();
+        dataModified = true;
     }
 
     /**
@@ -287,7 +309,22 @@ public class HeatMap extends View implements View.OnTouchListener {
         mFill = new Paint();
         mFill.setStyle(Paint.Style.FILL);
         data = new ArrayList<>();
+        dataBuffer = new ArrayList<>();
         super.setOnTouchListener(this);
+        this.setDrawingCacheEnabled(true);
+        this.setDrawingCacheBackgroundColor(Color.TRANSPARENT);
+    }
+
+    private void redrawShadow() {
+        mRenderBoundaries[0] = 10000;
+        mRenderBoundaries[1] = 10000;
+        mRenderBoundaries[2] = 0;
+        mRenderBoundaries[3] = 0;
+
+        mShadow = getDrawingCache();
+        mShadowCanvas = new Canvas(mShadow);
+
+        drawTransparent(mShadowCanvas);
     }
 
     /**
@@ -295,7 +332,6 @@ public class HeatMap extends View implements View.OnTouchListener {
      */
     private void tryRefresh() {
         if (needsRefresh) {
-            needsRefresh = false;
             Bitmap bit = Bitmap.createBitmap(256, 1, Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(bit);
             LinearGradient grad;
@@ -306,18 +342,27 @@ public class HeatMap extends View implements View.OnTouchListener {
             canvas.drawLine(0, 0, 256, 1, paint);
             palette = new int[256];
             bit.getPixels(palette, 0, 256, 0, 0, 256, 1);
+
+            if (dataModified) {
+                data.clear();
+                data.addAll(dataBuffer);
+                dataBuffer.clear();
+                dataModified = false;
+            }
+
+            redrawShadow();
         }
+        else if (sizeChange) {
+            redrawShadow();
+        }
+        needsRefresh = false;
+        sizeChange = false;
     }
 
-    /**
-     * Reset the drawing bounds before starting to draw.
-     */
-    private void setupData() {
-        tryRefresh();
-        mRenderBoundaries[0] = 10000;
-        mRenderBoundaries[1] = 10000;
-        mRenderBoundaries[2] = 0;
-        mRenderBoundaries[3] = 0;
+    @Override
+    public void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        sizeChange = true;
     }
 
     /**
@@ -327,13 +372,9 @@ public class HeatMap extends View implements View.OnTouchListener {
      */
     @Override
     protected void onDraw(Canvas canvas) {
-        setupData();
+        tryRefresh();
 
-        Bitmap bit = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.ARGB_8888);
-        Canvas shadowCtx = new Canvas(bit);
-
-        drawTransparent(shadowCtx);
-        drawColour(canvas, bit);
+        drawColour(canvas);
     }
 
     /**
@@ -371,6 +412,9 @@ public class HeatMap extends View implements View.OnTouchListener {
         //invert the blur factor
         double blur = 1 - mBlur;
 
+        //clear the canvas
+        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+
         //loop through the data points
         for (DataPoint point : data) {
             float x = point.x * getWidth();
@@ -403,9 +447,11 @@ public class HeatMap extends View implements View.OnTouchListener {
      * Convert the black/transparent heat map into a full colour one.
      *
      * @param canvas The canvas to draw into.
-     * @param shadow The black/transparent heat map
      */
-    private void drawColour(Canvas canvas, Bitmap shadow) {
+    private void drawColour(Canvas canvas) {
+        if (data.size() == 0)
+            return;
+
         //calculate the bounds of shadow layer that have modified pixels
         int x = (int)mRenderBoundaries[0];
         int y = (int)mRenderBoundaries[1];
@@ -425,7 +471,7 @@ public class HeatMap extends View implements View.OnTouchListener {
 
         //retrieve the modified pixels from the shadow layer
         int pixels[] = new int[width * height];
-        shadow.getPixels(pixels, 0, width, x, y, width, height);
+        mShadow.getPixels(pixels, 0, width, x, y, width, height);
 
         //loop over each retrieved pixel
         for (int j = 0; j < height; j++) {
@@ -458,31 +504,42 @@ public class HeatMap extends View implements View.OnTouchListener {
         }
 
         //set the modified pixels back into the bitmap
-        shadow.setPixels(pixels, 0, width, x, y, width, height);
+        mShadow.setPixels(pixels, 0, width, x, y, width, height);
         //render the bitmap onto the heat map
-        canvas.drawBitmap(shadow, 0, 0, null);
+        canvas.drawBitmap(mShadow, 0, 0, null);
     }
+
+    private float touchX;
+    private float touchY;
 
     @Override
     public boolean onTouch(View view, MotionEvent motionEvent) {
         if (mListener != null) {
-            if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+            if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
                 float x = motionEvent.getX();
                 float y = motionEvent.getY();
-                x = x / (float)getWidth();
-                y = y / (float)getHeight();
-                double minDist = Double.MAX_VALUE;
-                DataPoint minPoint = null;
-                for (DataPoint point : data) {
-                    double dist = point.distanceTo(x, y);
-                    if (dist < minDist) {
-                        minDist = dist;
-                        minPoint = point;
+                double d = Math.sqrt(Math.pow(touchX - x, 2.0f) + Math.pow(touchY - y, 2.0f));
+                if (d < 10) {
+                    x = x / (float) getWidth();
+                    y = y / (float) getHeight();
+                    double minDist = Double.MAX_VALUE;
+                    DataPoint minPoint = null;
+                    for (DataPoint point : data) {
+                        double dist = point.distanceTo(x, y);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            minPoint = point;
+                        }
                     }
+                    mListener.onMapClicked((int) x, (int) y, minPoint);
+                    return true;
                 }
-                mListener.onMapClicked((int)x, (int)y, minPoint);
             }
-            return true;
+            else if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+                touchX = motionEvent.getX();
+                touchY = motionEvent.getY();
+                return true;
+            }
         }
         return false;
     }
