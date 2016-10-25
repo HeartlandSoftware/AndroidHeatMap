@@ -1,4 +1,6 @@
-[![API](https://img.shields.io/badge/API-18%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=18)
+[![Release](https://jitpack.io/v/ca.heartlandsoftware/androidheatmap.svg)](https://jitpack.io/#ca.heartlandsoftware/androidheatmap)
+[![Method Count](https://img.shields.io/badge/Methods%20and%20size-83%20|%209%20KB-e91e63.svg)](http://www.methodscount.com/?lib=ca.heartlandsoftware%3Aandroidheatmap%3A1.0)
+[![API](https://img.shields.io/badge/API-18%2B-yellow.svg?style=flat)](https://android-arsenal.com/api?level=18)
 [![Apache 2](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://github.com/HeartlandSoftware/AndroidHeatMap/blob/master/LICENSE)
 
 # AndroidHeatMap
@@ -9,6 +11,47 @@
 
 ## Installation
 
+There are three different ways to use this library:
+
+**1. Gradle dependency** (recommended)
+
+- Add the following to your project level `build.gradle`:
+
+```gradle
+allprojects {
+	repositories {
+		maven { url "https://jitpack.io" }
+	}
+}
+```
+- Add this to your app `build.gradle`:
+
+```gradle
+dependencies {
+	compile 'ca.heartlandsoftware:androidheatmap:1.0'
+}
+```
+
+**2. Maven**
+- Add the following to the `<repositories>` section of your `pom.xml`:
+
+```xml
+<repository>
+	<id>jitpack.io</id>
+	<url>https://jitpack.io</url>
+</repository>
+```
+- Add the following to the `<dependencies>` section of your `pom.xml`:
+
+```xml
+<dependency>
+	<groupId>ca.heartlandsoftware</groupId>
+	<artifactId>androidheatmap</artifactId>
+	<version>1.0</version>
+</dependency>
+```
+
+**3. Clone the whole repository**
  - Open your **commandline-input** and navigate to the desired destination folder on your machine (where you want to place the library)
  - Use the command `git clone https://github.com/HeartlandSoftware/AndroidHeatMap.git` to download the full AndroidHeatMap repository to your computer (this includes the folder of the library as well as the folder of the example project)
  - Import the library folder (`AndroidHeatMap`) into Android Studio (recommended) or your Eclipse workspace
