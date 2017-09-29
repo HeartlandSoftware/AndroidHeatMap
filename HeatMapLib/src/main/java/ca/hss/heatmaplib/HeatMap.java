@@ -28,6 +28,8 @@ import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.RadialGradient;
 import android.graphics.Shader;
+import android.support.annotation.AnyThread;
+import android.support.annotation.WorkerThread;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
@@ -136,10 +138,13 @@ public class HeatMap extends View implements View.OnTouchListener {
 
     private Canvas mShadowCanvas = null;
 
+    private final Object tryRefreshLock = new Object();
+
     /**
      * Set the blur factor for the heat map. Must be between 0 and 1.
      * @param blur The blur factor
      */
+    @AnyThread
     public void setBlur(double blur) {
         if (blur > 1.0 || blur < 0.0)
             throw new IllegalArgumentException("Blur must be between 0 and 1.");
@@ -148,6 +153,7 @@ public class HeatMap extends View implements View.OnTouchListener {
     /**
      * Get the heat map's blur factor.
      */
+    @AnyThread
     public double getBlur() { return mBlur; }
 
     /**
@@ -156,6 +162,7 @@ public class HeatMap extends View implements View.OnTouchListener {
      * This should be greater than the minimum value.
      * @param max The maximum value.
      */
+    @AnyThread
     public void setMaximum(double max) { this.max = max; }
 
     /**
@@ -164,30 +171,35 @@ public class HeatMap extends View implements View.OnTouchListener {
      * This should be less than the maximum value.
      * @param min The minimum value.
      */
+    @AnyThread
     public void setMinimum(double min) { this.min = min; }
 
     /**
      * Set the opacity to be used in the heat map. This opacity will be used for the entire map.
      * @param opacity The opacity in the range [0,255].
      */
+    @AnyThread
     public void setOpacity(int opacity) { this.opacity = opacity; }
 
     /**
      * Set the minimum opacity to be used in the map. Only used when {@link HeatMap#opacity} is 0.
      * @param min The minimum opacity in the range [0,255].
      */
+    @AnyThread
     public void setMinimumOpactity(int min) { this.minOpacity = min; }
 
     /**
      * Set the maximum opacity to be used in the map. Only used when {@link HeatMap#opacity} is 0.
      * @param max The maximum opacity in the range [0,255].
      */
+    @AnyThread
     public void setMaximumOpactity(int max) { this.maxOpacity = max; }
 
     /**
      * Set the circles radius when drawing data points.
      * @param radius The radius in pixels.
      */
+    @AnyThread
     public void setRadius(double radius) { this.mRadius = radius; }
 
     /**
@@ -195,6 +207,7 @@ public class HeatMap extends View implements View.OnTouchListener {
      * and there should be one at a position of 0 and one at a position of 1.
      * @param stops A map from stop positions (as fractions of the width in [0,1]) to ARGB colors.
      */
+    @AnyThread
     public void setColorStops(Map<Float, Integer> stops) {
         if (stops.size() < 2)
             throw new IllegalArgumentException("There must be at least 2 color stops");
@@ -214,6 +227,7 @@ public class HeatMap extends View implements View.OnTouchListener {
      * Does not refresh the display. See {@link HeatMap#forceRefresh()} in order to redraw the heat map.
      * @param point A new data point.
      */
+    @AnyThread
     public void addData(DataPoint point) {
         dataBuffer.add(point);
         dataModified = true;
@@ -224,6 +238,7 @@ public class HeatMap extends View implements View.OnTouchListener {
      *
      * Does not refresh the display. See {@link HeatMap#forceRefresh()} in order to redraw the heat map.
      */
+    @AnyThread
     public void clearData() {
         dataBuffer.clear();
         dataModified = true;
@@ -315,23 +330,69 @@ public class HeatMap extends View implements View.OnTouchListener {
         this.setDrawingCacheBackgroundColor(Color.TRANSPARENT);
     }
 
-    private void redrawShadow() {
+    @AnyThread
+    private void redrawShadow(Bitmap drawingCache, int width, int height) {
         mRenderBoundaries[0] = 10000;
         mRenderBoundaries[1] = 10000;
         mRenderBoundaries[2] = 0;
         mRenderBoundaries[3] = 0;
 
-        mShadow = getDrawingCache();
+        mShadow = drawingCache;
         mShadowCanvas = new Canvas(mShadow);
 
-        drawTransparent(mShadowCanvas);
+        drawTransparent(mShadowCanvas, width, height);
+    }
+
+    /**
+     * Draws the heatmap from a background thread.
+     *
+     * This allows offloading some of the work that would usualy be done in
+     * {@link #onDraw(Canvas)} into a background thread. If the view is redrawn
+     * for some reason while this operation is still ongoing, the UI thread
+     * will block until this call is finished.
+     *
+     * The caller should take care to invalidate the view on the UI thread
+     * afterwards, but not before this call has finished.
+     *
+     * <pre>{@code
+     * final HeatMap heatmap = (HeatMap) findViewById(R.id.heatmap);
+     * new AsyncTask<Void,Void,Void>() {
+     *     protected Void doInBackground(Void... params) {
+     *         Random rand = new Random();
+     *         //add 20 random points of random intensity
+     *         for (int i = 0; i < 20; i++) {
+     *             heatmap.addData(getRandomDataPoint());
+     *         }
+     *
+     *         heatmap.refreshImmediateInBackgroundThread();
+     *
+     *         return null;
+     *     }
+     *
+     *     protected void onPostExecute(Void aVoid) {
+     *         heatmap.invalidate();
+     *         heatmap.setAlpha(0.0f);
+     *         heatmap.animate().alpha(1.0f).setDuration(700L).start();
+     *     }
+     * }.execute();
+     * }</pre>
+     */
+    @WorkerThread
+    public void forceRefreshOnWorkerThread() {
+        synchronized (tryRefreshLock) {
+            // These getters are in fact available on this thread. The caller will have to
+            // take care that the view is in an acceptable state here.
+            // noinspection WrongThread
+            tryRefresh(true, getDrawingCache(), getWidth(), getHeight());
+        }
     }
 
     /**
      * If needed, refresh the palette.
      */
-    private void tryRefresh() {
-        if (needsRefresh) {
+    @AnyThread
+    private void tryRefresh(boolean forceRefresh, Bitmap drawingCache, int width, int height) {
+        if (forceRefresh || needsRefresh) {
             Bitmap bit = Bitmap.createBitmap(256, 1, Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(bit);
             LinearGradient grad;
@@ -350,13 +411,13 @@ public class HeatMap extends View implements View.OnTouchListener {
                 dataModified = false;
             }
 
-            redrawShadow();
+            redrawShadow(drawingCache, width, height);
+        } else if (sizeChange) {
+            sizeChange = false;
+            redrawShadow(drawingCache, width, height);
         }
-        else if (sizeChange) {
-            redrawShadow();
-        }
+
         needsRefresh = false;
-        sizeChange = false;
     }
 
     @Override
@@ -372,7 +433,9 @@ public class HeatMap extends View implements View.OnTouchListener {
      */
     @Override
     protected void onDraw(Canvas canvas) {
-        tryRefresh();
+        synchronized (tryRefreshLock) {
+            tryRefresh(false, getDrawingCache(), getWidth(), getHeight());
+        }
 
         drawColour(canvas);
     }
@@ -388,6 +451,7 @@ public class HeatMap extends View implements View.OnTouchListener {
      * @param blurFactor A factor to scale the circles width by.
      * @param alpha The transparency of the gradient.
      */
+    @AnyThread
     private void drawDataPoint(Canvas canvas, float x, float y, double radius, double blurFactor, double alpha) {
         if (blurFactor == 1) {
             canvas.drawCircle(x, y, (float)radius, mBlack);
@@ -407,8 +471,11 @@ public class HeatMap extends View implements View.OnTouchListener {
      * version.
      *
      * @param canvas Canvas to draw into.
+     * @param width The width of the view
+     * @param height The height of the view
      */
-    private void drawTransparent(Canvas canvas) {
+    @AnyThread
+    private void drawTransparent(Canvas canvas, int width, int height) {
         //invert the blur factor
         double blur = 1 - mBlur;
 
@@ -417,8 +484,8 @@ public class HeatMap extends View implements View.OnTouchListener {
 
         //loop through the data points
         for (DataPoint point : data) {
-            float x = point.x * getWidth();
-            float y = point.y * getHeight();
+            float x = point.x * width;
+            float y = point.y * height;
             double value = Math.max(min, Math.min(point.value, max));
             //the edge of the bounding rectangle for the circle
             double rectX = x - mRadius;
