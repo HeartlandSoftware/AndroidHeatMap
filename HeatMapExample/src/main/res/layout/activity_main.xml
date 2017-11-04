@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -7,13 +7,25 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
+    android:orientation="vertical"
     tools:context="ca.hss.heatmap.MainActivity">
 
     <ca.hss.heatmaplib.HeatMap
         android:id="@+id/example_map"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         app:minOpacity="0"
         app:maxOpacity="255"
-        app:blur="0.001"/>
-</RelativeLayout>
+        app:blur="0.001"
+        app:maxDrawingHeight="200dp"
+        app:maxDrawingWidth="200dp"
+        app:transparentBackground="false"/>
+
+    <CheckBox
+        android:id="@+id/change_async_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        android:text="@string/render_async"/>
+</LinearLayout>

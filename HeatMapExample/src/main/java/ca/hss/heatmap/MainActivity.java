@@ -19,25 +19,40 @@
 package ca.hss.heatmap;
 
 import android.graphics.Color;
+import android.os.AsyncTask;
+import android.support.annotation.AnyThread;
 import android.support.v4.util.ArrayMap;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 
 import java.util.Map;
 import java.util.Random;
 
 import ca.hss.heatmaplib.HeatMap;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener {
+
+    private HeatMap map;
+    private boolean testAsync = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        HeatMap map = (HeatMap)findViewById(R.id.example_map);
+        CheckBox box = findViewById(R.id.change_async_status);
+        box.setOnCheckedChangeListener(this);
+
+        map = findViewById(R.id.example_map);
         map.setMinimum(0.0);
         map.setMaximum(100.0);
+        map.setLeftPadding(100);
+        map.setRightPadding(100);
+        map.setTopPadding(100);
+        map.setBottomPadding(100);
+        map.setRadius(80.0);
         Map<Float, Integer> colors = new ArrayMap<>();
         //build a color gradient in HSV from red at the center to green at the outside
         for (int i = 0; i < 21; i++) {
@@ -46,6 +61,40 @@ public class MainActivity extends AppCompatActivity {
             colors.put(stop, color);
         }
         map.setColorStops(colors);
+
+        map.setOnMapClickListener(new HeatMap.OnMapClickListener() {
+            @Override
+            public void onMapClicked(int x, int y, HeatMap.DataPoint closest) {
+                addData();
+            }
+        });
+    }
+
+    private void addData() {
+        if (testAsync) {
+            AsyncTask.execute(new Runnable() {
+                @Override
+                public void run() {
+                    drawNewMap();
+                    map.forceRefreshOnWorkerThread();
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            map.invalidate();
+                        }
+                    });
+                }
+            });
+        }
+        else {
+            drawNewMap();
+            map.forceRefresh();
+        }
+    }
+
+    @AnyThread
+    private void drawNewMap() {
+        map.clearData();
         Random rand = new Random();
         //add 20 random points of random intensity
         for (int i = 0; i < 20; i++) {
@@ -84,5 +133,10 @@ public class MainActivity extends AppCompatActivity {
 
     private static float interpolate(float a, float b, float proportion) {
         return (a + ((b - a) * proportion));
+    }
+
+    @Override
+    public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+        testAsync = !testAsync;
     }
 }
