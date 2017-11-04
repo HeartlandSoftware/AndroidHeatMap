@@ -6,5 +6,10 @@
         <attr name="maxOpacity" format="integer" />
         <attr name="blur" format="float" />
         <attr name="radius" format="dimension" />
+        <attr name="dataPaddingTop" format="dimension" />
+        <attr name="dataPaddingBottom" format="dimension" />
+        <attr name="dataPaddingLeft" format="dimension" />
+        <attr name="dataPaddingRight" format="dimension" />
+        <attr name="dataPadding" format="dimension" />
     </declare-styleable>
 </resources>

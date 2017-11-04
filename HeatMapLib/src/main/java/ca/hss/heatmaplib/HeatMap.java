@@ -39,9 +39,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Created by Travis Redpath on 10/2/2016.
- *
  * A class for rendering a heat map in an Android view.
+ * <br/>
+ * Created by Travis Redpath on 10/2/2016.
  */
 public class HeatMap extends View implements View.OnTouchListener {
 
@@ -100,7 +100,7 @@ public class HeatMap extends View implements View.OnTouchListener {
     /**
      * Colors to be used in building the gradient.
      */
-    private int colors[] = new int[] { 0xffff0000, 0xff00ff00 };
+    private @ColorInt int colors[] = new int[] { 0xffff0000, 0xff00ff00 };
 
     /**
      * The stops to position the colors at.
@@ -132,13 +132,67 @@ public class HeatMap extends View implements View.OnTouchListener {
      */
     private boolean sizeChange = false;
 
+    /**
+     * The top padding on the heatmap.
+     */
+    private float mTop = 0;
+
+    /**
+     * The left padding on the heatmap.
+     */
+    private float mLeft = 0;
+
+    /**
+     * The right padding on the heatmap.
+     */
+    private float mRight = 0;
+
+    /**
+     * The bottom padding on the heatmap.
+     */
+    private float mBottom = 0;
+
     private OnMapClickListener mListener;
 
+    /**
+     * The bitmap that the shadow layer is rendered into.
+     */
     private Bitmap mShadow = null;
 
     private Canvas mShadowCanvas = null;
 
+    /**
+     * A lock to make sure that the bitmap is not rendered more than once at a time.
+     */
     private final Object tryRefreshLock = new Object();
+
+    /**
+     * Set a right padding for the data positions. The gradient will still extend into the
+     * padding area.
+     * @param padding The amount of padding to add to the right of the data points (in pixels).
+     */
+    public void setRightPadding(int padding) { mRight = padding; }
+
+    /**
+     * Set a left padding for the data positions. The gradient will still extend into the
+     * padding area.
+     * @param padding The amount of padding to add to the left of the data points (in pixels).
+     */
+    public void setLeftPadding(int padding) { mLeft = padding; }
+
+    /**
+     * Set a top padding for the data positions. The gradient will still extend into the
+     * padding area.
+     * @param padding The amount of padding to add to the top of the data points (in pixels).
+     */
+    public void setTopPadding(int padding) { mTop = padding; }
+
+    /**
+     * Set a bottom padding for the data positions. The gradient will still extend into the
+     * padding area.
+     * @param padding The amount of padding to add to the bottom of the data points (in pixels).
+     */
+    public void setBottomPadding(int padding) { mBottom = padding; }
 
     /**
      * Set the blur factor for the heat map. Must be between 0 and 1.
@@ -300,6 +354,21 @@ public class HeatMap extends View implements View.OnTouchListener {
             mRadius = a.getDimension(R.styleable.HeatMap_radius, -1);
             if (mRadius < 0)
                 mRadius = 200;
+            float padding = a.getDimension(R.styleable.HeatMap_dataPadding, -1);
+            if (padding < 0)
+                padding = 0;
+            mTop = a.getDimension(R.styleable.HeatMap_dataPaddingTop, -1);
+            if (mTop < 0)
+                mTop = padding;
+            mBottom = a.getDimension(R.styleable.HeatMap_dataPaddingBottom, -1);
+            if (mBottom < 0)
+                mBottom = padding;
+            mRight = a.getDimension(R.styleable.HeatMap_dataPaddingRight, -1);
+            if (mRight < 0)
+                mRight = padding;
+            mLeft = a.getDimension(R.styleable.HeatMap_dataPaddingLeft, -1);
+            if (mLeft < 0)
+                mLeft = padding;
         } finally {
             a.recycle();
         }
@@ -482,10 +551,13 @@ public class HeatMap extends View implements View.OnTouchListener {
         //clear the canvas
         canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
 
+        float w = width - mLeft - mRight;
+        float h = height - mTop - mBottom;
+
         //loop through the data points
         for (DataPoint point : data) {
-            float x = point.x * width;
-            float y = point.y * height;
+            float x = (point.x * w) + mLeft;
+            float y = (point.y * h) + mTop;
             double value = Math.max(min, Math.min(point.value, max));
             //the edge of the bounding rectangle for the circle
             double rectX = x - mRadius;
