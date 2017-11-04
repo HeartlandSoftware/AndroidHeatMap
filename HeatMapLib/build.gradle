@@ -7,8 +7,8 @@ android {
     defaultConfig {
         minSdkVersion 15
         targetSdkVersion 26
-        versionCode 1
-        versionName "1.0"
+        versionCode 1501001
+        versionName "1.1"
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
@@ -37,4 +37,4 @@ dependencies {
 apply plugin: 'com.github.dcendents.android-maven'
 
 group='com.github.HeartlandSoftware'
-version="1.0"
+version="1.1"
