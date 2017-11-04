@@ -1,7 +1,7 @@
-/**
+/*
  * MainActivity.java
  *
- * Copyright 2016 Heartland Software Solutions Inc.
+ * Copyright 2017 Heartland Software Solutions Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
