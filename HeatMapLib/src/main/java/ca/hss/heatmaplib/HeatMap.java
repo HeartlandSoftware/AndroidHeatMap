@@ -115,6 +115,13 @@ public class HeatMap extends View implements View.OnTouchListener {
      */
     private Paint mBlack;
 
+    private boolean mTransparentBackground = true;
+
+    /**
+     * A paint for the background fill.
+     */
+    private Paint mBackground;
+
     /**
      * A paint to be used to fill objects.
      */
@@ -311,6 +318,8 @@ public class HeatMap extends View implements View.OnTouchListener {
             positions[i] = key;
             i++;
         }
+        if (!mTransparentBackground)
+            mBackground.setColor(colors[0]);
     }
 
     /**
@@ -413,6 +422,7 @@ public class HeatMap extends View implements View.OnTouchListener {
             mMaxHeight = (int)a.getDimension(R.styleable.HeatMap_maxDrawingHeight, -1);
             if (mMaxHeight < 0)
                 mMaxHeight = null;
+            mTransparentBackground = a.getBoolean(R.styleable.HeatMap_transparentBackground, true);
         } finally {
             a.recycle();
         }
@@ -436,6 +446,9 @@ public class HeatMap extends View implements View.OnTouchListener {
         mBlack.setColor(0xff000000);
         mFill = new Paint();
         mFill.setStyle(Paint.Style.FILL);
+        mBackground = new Paint();
+        if (!mTransparentBackground)
+            mBackground.setColor(0xfffefefe);
         data = new ArrayList<>();
         dataBuffer = new ArrayList<>();
         super.setOnTouchListener(this);
@@ -746,6 +759,10 @@ public class HeatMap extends View implements View.OnTouchListener {
             //set the modified pixels back into the bitmap
             mShadow.setPixels(pixels, 0, width, x, y + j, width, 1);
         }
+
+        //clear to the min colour
+        if (!mTransparentBackground)
+            canvas.drawRect(0, 0, getWidth(), getHeight(), mBackground);
         //render the bitmap onto the heat map
         canvas.drawBitmap(mShadow, new Rect(0, 0, getDrawingWidth(), getDrawingHeight()), new Rect(0, 0, getWidth(), getHeight()), null);
     }

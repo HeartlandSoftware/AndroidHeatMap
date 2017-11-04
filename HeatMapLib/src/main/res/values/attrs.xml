@@ -13,5 +13,6 @@
         <attr name="dataPadding" format="dimension" />
         <attr name="maxDrawingWidth" format="dimension" />
         <attr name="maxDrawingHeight" format="dimension" />
+        <attr name="transparentBackground" format="boolean" />
     </declare-styleable>
 </resources>
