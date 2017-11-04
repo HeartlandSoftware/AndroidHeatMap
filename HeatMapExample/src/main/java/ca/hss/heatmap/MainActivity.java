@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Random;
 
 import ca.hss.heatmaplib.HeatMap;
+import ca.hss.heatmaplib.HeatMapMarkerCallback;
 
 public class MainActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener {
 
@@ -52,6 +53,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         map.setRightPadding(100);
         map.setTopPadding(100);
         map.setBottomPadding(100);
+        map.setMarkerCallback(new HeatMapMarkerCallback.CircleHeatMapMarker(0xff9400D3));
         map.setRadius(80.0);
         Map<Float, Integer> colors = new ArrayMap<>();
         //build a color gradient in HSV from red at the center to green at the outside
