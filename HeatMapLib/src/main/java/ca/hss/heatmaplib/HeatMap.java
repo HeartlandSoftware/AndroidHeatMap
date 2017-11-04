@@ -609,13 +609,14 @@ public class HeatMap extends View implements View.OnTouchListener {
             height = maxHeight - y;
 
         //retrieve the modified pixels from the shadow layer
-        int pixels[] = new int[width * height];
-        mShadow.getPixels(pixels, 0, width, x, y, width, height);
+        int pixels[] = new int[width];
 
         //loop over each retrieved pixel
         for (int j = 0; j < height; j++) {
+            mShadow.getPixels(pixels, 0, width, x, y + j, width, 1);
+
             for (int i = 0; i < width; i++) {
-                int pixel = pixels[i + (j * width)];
+                int pixel = pixels[i];
                 //the pixels alpha value (0-255)
                 int alpha = 0xff & (pixel >> 24);
 
@@ -638,12 +639,12 @@ public class HeatMap extends View implements View.OnTouchListener {
                 }
 
                 //set the pixels colour to its corresponding colour in the palette
-                pixels[i + (j * width)] = ((0xff & clampAlpha) << 24) | (0xffffff & palette[alpha]);
+                pixels[i] = ((0xff & clampAlpha) << 24) | (0xffffff & palette[alpha]);
             }
-        }
 
-        //set the modified pixels back into the bitmap
-        mShadow.setPixels(pixels, 0, width, x, y, width, height);
+            //set the modified pixels back into the bitmap
+            mShadow.setPixels(pixels, 0, width, x, y + j, width, 1);
+        }
         //render the bitmap onto the heat map
         canvas.drawBitmap(mShadow, 0, 0, null);
     }
