@@ -11,5 +11,7 @@
         <attr name="dataPaddingLeft" format="dimension" />
         <attr name="dataPaddingRight" format="dimension" />
         <attr name="dataPadding" format="dimension" />
+        <attr name="maxDrawingWidth" format="dimension" />
+        <attr name="maxDrawingHeight" format="dimension" />
     </declare-styleable>
 </resources>

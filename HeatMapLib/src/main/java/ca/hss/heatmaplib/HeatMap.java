@@ -18,6 +18,7 @@
 
 package ca.hss.heatmaplib;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
@@ -27,9 +28,11 @@ import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.RadialGradient;
+import android.graphics.Rect;
 import android.graphics.Shader;
 import android.support.annotation.AnyThread;
 import android.support.annotation.WorkerThread;
+import android.support.annotation.ColorInt;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
@@ -152,6 +155,19 @@ public class HeatMap extends View implements View.OnTouchListener {
      */
     private float mBottom = 0;
 
+    /**
+     * The maximum width of the rendering surface.
+     */
+    private Integer mMaxWidth = 0;
+
+    /**
+     * The maximum height of the rendering surface.
+     */
+    private Integer mMaxHeight = 0;
+
+    /**
+     * A listener for click events.
+     */
     private OnMapClickListener mListener;
 
     /**
@@ -159,12 +175,15 @@ public class HeatMap extends View implements View.OnTouchListener {
      */
     private Bitmap mShadow = null;
 
-    private Canvas mShadowCanvas = null;
-
     /**
      * A lock to make sure that the bitmap is not rendered more than once at a time.
      */
     private final Object tryRefreshLock = new Object();
+
+    /**
+     * Should the drawing cache be used or should a new bitmap be created.
+     */
+    private boolean mUseDrawingCache = false;
 
     /**
      * Set a right padding for the data positions. The gradient will still extend into the
@@ -255,6 +274,25 @@ public class HeatMap extends View implements View.OnTouchListener {
      */
     @AnyThread
     public void setRadius(double radius) { this.mRadius = radius; }
+
+    /**
+     * Use the drawing cache instead of creating a new {@link Bitmap}. Causes {@link NullPointerException} on some
+     * devices so is disabled by default.
+     * @param use Use the drawing cache instead of a new {@link Bitmap}.
+     */
+    public void setUseDrawingCache(boolean use) { this.mUseDrawingCache = use; invalidate(); }
+
+    /**
+     * The maximum width of the bitmap that is used to render the heatmap.
+     * @param width The maximum width in pixels.
+     */
+    public void setMaxDrawingWidth(int width) { mMaxWidth = width; }
+
+    /**
+     * The maximum height of the bitmap that is used to render the heatmap.
+     * @param height The maximum height in pixels.
+     */
+    public void setMaxDrawingHeight(int height) { mMaxHeight = height; }
 
     /**
      * Set the color stops used for the heat map's gradient. There needs to be at least 2 stops
@@ -369,6 +407,12 @@ public class HeatMap extends View implements View.OnTouchListener {
             mLeft = a.getDimension(R.styleable.HeatMap_dataPaddingLeft, -1);
             if (mLeft < 0)
                 mLeft = padding;
+            mMaxWidth = (int)a.getDimension(R.styleable.HeatMap_maxDrawingWidth, -1);
+            if (mMaxWidth < 0)
+                mMaxWidth = null;
+            mMaxHeight = (int)a.getDimension(R.styleable.HeatMap_maxDrawingHeight, -1);
+            if (mMaxHeight < 0)
+                mMaxHeight = null;
         } finally {
             a.recycle();
         }
@@ -395,21 +439,72 @@ public class HeatMap extends View implements View.OnTouchListener {
         data = new ArrayList<>();
         dataBuffer = new ArrayList<>();
         super.setOnTouchListener(this);
-        this.setDrawingCacheEnabled(true);
-        this.setDrawingCacheBackgroundColor(Color.TRANSPARENT);
+        if (mUseDrawingCache) {
+            this.setDrawingCacheEnabled(true);
+            this.setDrawingCacheBackgroundColor(Color.TRANSPARENT);
+        }
     }
 
     @AnyThread
-    private void redrawShadow(Bitmap drawingCache, int width, int height) {
+    @SuppressLint("WrongThread")
+    private int getDrawingWidth() {
+        if (mMaxWidth == null)
+            return getWidth();
+        return Math.min(calcMaxWidth(), getWidth());
+    }
+
+    @AnyThread
+    @SuppressLint("WrongThread")
+    private int getDrawingHeight() {
+        if (mMaxHeight == null)
+            return getHeight();
+        return Math.min(calcMaxHeight(), getHeight());
+    }
+
+    @AnyThread
+    @SuppressWarnings("WrongThread")
+    private float getScale() {
+        if (mMaxWidth == null || mMaxHeight == null)
+            return 1.0f;
+        float sourceRatio = getWidth() / getHeight();
+        float targetRatio = mMaxWidth / mMaxHeight;
+        float scale;
+        if (sourceRatio < targetRatio) {
+            scale = getWidth() / ((float)mMaxWidth);
+        }
+        else {
+            scale = getHeight() / ((float)mMaxHeight);
+        }
+        return scale;
+    }
+
+    @AnyThread
+    @SuppressLint("WrongThread")
+    private int calcMaxHeight() {
+        return (int)(getHeight() / getScale());
+    }
+
+    @AnyThread
+    @SuppressLint("WrongThread")
+    private int calcMaxWidth() {
+        return (int)(getWidth() / getScale());
+    }
+
+    @AnyThread
+    @SuppressLint("WrongThread")
+    private void redrawShadow(int width, int height) {
         mRenderBoundaries[0] = 10000;
         mRenderBoundaries[1] = 10000;
         mRenderBoundaries[2] = 0;
         mRenderBoundaries[3] = 0;
 
-        mShadow = drawingCache;
-        mShadowCanvas = new Canvas(mShadow);
+        if (mUseDrawingCache)
+            mShadow = getDrawingCache();
+        else
+            mShadow = Bitmap.createBitmap(getDrawingWidth(), getDrawingHeight(), Bitmap.Config.ARGB_8888);
+        Canvas shadowCanvas = new Canvas(mShadow);
 
-        drawTransparent(mShadowCanvas, width, height);
+        drawTransparent(shadowCanvas, width, height);
     }
 
     /**
@@ -433,7 +528,7 @@ public class HeatMap extends View implements View.OnTouchListener {
      *             heatmap.addData(getRandomDataPoint());
      *         }
      *
-     *         heatmap.refreshImmediateInBackgroundThread();
+     *         heatmap.forceRefreshOnWorkerThread();
      *
      *         return null;
      *     }
@@ -447,12 +542,12 @@ public class HeatMap extends View implements View.OnTouchListener {
      * }</pre>
      */
     @WorkerThread
+    @SuppressLint("WrongThread")
     public void forceRefreshOnWorkerThread() {
         synchronized (tryRefreshLock) {
             // These getters are in fact available on this thread. The caller will have to
             // take care that the view is in an acceptable state here.
-            // noinspection WrongThread
-            tryRefresh(true, getDrawingCache(), getWidth(), getHeight());
+            tryRefresh(true, getDrawingWidth(), getDrawingHeight());
         }
     }
 
@@ -460,7 +555,7 @@ public class HeatMap extends View implements View.OnTouchListener {
      * If needed, refresh the palette.
      */
     @AnyThread
-    private void tryRefresh(boolean forceRefresh, Bitmap drawingCache, int width, int height) {
+    private void tryRefresh(boolean forceRefresh, int width, int height) {
         if (forceRefresh || needsRefresh) {
             Bitmap bit = Bitmap.createBitmap(256, 1, Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(bit);
@@ -480,32 +575,32 @@ public class HeatMap extends View implements View.OnTouchListener {
                 dataModified = false;
             }
 
-            redrawShadow(drawingCache, width, height);
-        } else if (sizeChange) {
-            sizeChange = false;
-            redrawShadow(drawingCache, width, height);
+            redrawShadow(width, height);
         }
-
+        else if (sizeChange) {
+            redrawShadow(width, height);
+        }
         needsRefresh = false;
+        sizeChange = false;
     }
 
     @Override
     public void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        sizeChange = true;
+        if (mMaxWidth == null || mMaxHeight == null)
+            sizeChange = true;
     }
 
     /**
-     * Draw the heatp map.
+     * Draw the heat map.
      *
      * @param canvas Canvas to draw into.
      */
     @Override
     protected void onDraw(Canvas canvas) {
         synchronized (tryRefreshLock) {
-            tryRefresh(false, getDrawingCache(), getWidth(), getHeight());
+            tryRefresh(false, getDrawingWidth(), getDrawingHeight());
         }
-
         drawColour(canvas);
     }
 
@@ -540,8 +635,8 @@ public class HeatMap extends View implements View.OnTouchListener {
      * version.
      *
      * @param canvas Canvas to draw into.
-     * @param width The width of the view
-     * @param height The height of the view
+     * @param width The width of the view.
+     * @param height The height of the view.
      */
     @AnyThread
     private void drawTransparent(Canvas canvas, int width, int height) {
@@ -551,13 +646,19 @@ public class HeatMap extends View implements View.OnTouchListener {
         //clear the canvas
         canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
 
-        float w = width - mLeft - mRight;
-        float h = height - mTop - mBottom;
+        float scale = getScale();
+        float top = mTop / scale;
+        float bottom = mBottom / scale;
+        float left = mLeft / scale;
+        float right = mRight / scale;
+
+        float w = width - left - right;
+        float h = height - top - bottom;
 
         //loop through the data points
         for (DataPoint point : data) {
-            float x = (point.x * w) + mLeft;
-            float y = (point.y * h) + mTop;
+            float x = (point.x * w) + left;
+            float y = (point.y * h) + top;
             double value = Math.max(min, Math.min(point.value, max));
             //the edge of the bounding rectangle for the circle
             double rectX = x - mRadius;
@@ -596,8 +697,8 @@ public class HeatMap extends View implements View.OnTouchListener {
         int y = (int)mRenderBoundaries[1];
         int width = (int)mRenderBoundaries[2];
         int height = (int)mRenderBoundaries[3];
-        int maxWidth = getWidth();
-        int maxHeight = getHeight();
+        int maxWidth = getDrawingWidth();
+        int maxHeight = getDrawingHeight();
 
         if (x < 0)
             x = 0;
@@ -646,7 +747,7 @@ public class HeatMap extends View implements View.OnTouchListener {
             mShadow.setPixels(pixels, 0, width, x, y + j, width, 1);
         }
         //render the bitmap onto the heat map
-        canvas.drawBitmap(mShadow, 0, 0, null);
+        canvas.drawBitmap(mShadow, new Rect(0, 0, getDrawingWidth(), getDrawingHeight()), new Rect(0, 0, getWidth(), getHeight()), null);
     }
 
     private float touchX;
