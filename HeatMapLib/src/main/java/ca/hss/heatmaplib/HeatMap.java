@@ -193,6 +193,11 @@ public class HeatMap extends View implements View.OnTouchListener {
     private boolean mUseDrawingCache = false;
 
     /**
+     * A listener that is used to draw
+     */
+    private HeatMapMarkerCallback mMarkerCallback = null;
+
+    /**
      * Set a right padding for the data positions. The gradient will still extend into the
      * padding area.
      * @param padding The amount of padding to add to the right of the data points (in pixels).
@@ -219,6 +224,12 @@ public class HeatMap extends View implements View.OnTouchListener {
      * @param padding The amount of padding to add to the bottom of the data points (in pixels).
      */
     public void setBottomPadding(int padding) { mBottom = padding; }
+
+    /**
+     * Show markers at the data positions.
+     * @param callback Callback that will draw the data point markers.
+     */
+    public void setMarkerCallback(HeatMapMarkerCallback callback) { mMarkerCallback = callback; }
 
     /**
      * Set the blur factor for the heat map. Must be between 0 and 1.
@@ -765,6 +776,18 @@ public class HeatMap extends View implements View.OnTouchListener {
             canvas.drawRect(0, 0, getWidth(), getHeight(), mBackground);
         //render the bitmap onto the heat map
         canvas.drawBitmap(mShadow, new Rect(0, 0, getDrawingWidth(), getDrawingHeight()), new Rect(0, 0, getWidth(), getHeight()), null);
+
+        //draw markers at each data point if requested
+        if (mMarkerCallback != null) {
+            float rwidth = getWidth() - mLeft - mRight;
+            float rheight = getHeight() - mTop - mBottom;
+
+            for (DataPoint point : data) {
+                float rx = (point.x * rwidth) + mLeft;
+                float ry = (point.y * rheight) + mTop;
+                mMarkerCallback.drawMarker(canvas, rx, ry);
+            }
+        }
     }
 
     private float touchX;
