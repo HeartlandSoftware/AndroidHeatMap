@@ -28,7 +28,7 @@ allprojects {
 
 ```gradle
 dependencies {
-	compile 'ca.heartlandsoftware:androidheatmap:1.1.1'
+	implementation 'ca.heartlandsoftware:androidheatmap:1.1.1'
 }
 ```
 
