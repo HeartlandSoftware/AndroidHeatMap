@@ -7,8 +7,8 @@ android {
         applicationId "ca.hss.heatmap"
         minSdkVersion 15
         targetSdkVersion 29
-        versionCode 1501001
-        versionName "1.1"
+        versionCode 1501002
+        versionName "1.2"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         signingConfig signingConfigs.debug
     }
