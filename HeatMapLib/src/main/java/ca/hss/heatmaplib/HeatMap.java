@@ -277,14 +277,14 @@ public class HeatMap extends View implements View.OnTouchListener {
      * @param min The minimum opacity in the range [0,255].
      */
     @AnyThread
-    public void setMinimumOpactity(int min) { this.minOpacity = min; }
+    public void setMinimumOpacity(int min) { this.minOpacity = min; }
 
     /**
      * Set the maximum opacity to be used in the map. Only used when {@link HeatMap#opacity} is 0.
      * @param max The maximum opacity in the range [0,255].
      */
     @AnyThread
-    public void setMaximumOpactity(int max) { this.maxOpacity = max; }
+    public void setMaximumOpacity(int max) { this.maxOpacity = max; }
 
     /**
      * Set the circles radius when drawing data points.
