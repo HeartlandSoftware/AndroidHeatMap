@@ -1,7 +1,7 @@
 /*
  * HeatMapMarkerCallback.java
  *
- * Copyright 2017 Heartland Software Solutions Inc.
+ * Copyright 2020 Heartland Software Solutions Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ package ca.hss.heatmaplib;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.support.annotation.ColorInt;
+import androidx.annotation.ColorInt;
 
 /**
  * A callback to allow markers to be drawn over the heatmap at each data point.

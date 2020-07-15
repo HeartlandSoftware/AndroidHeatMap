@@ -1,7 +1,7 @@
 /*
  * HeatMap.java
  *
- * Copyright 2017 Heartland Software Solutions Inc.
+ * Copyright 2020 Heartland Software Solutions Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,9 +30,9 @@ import android.graphics.PorterDuff;
 import android.graphics.RadialGradient;
 import android.graphics.Rect;
 import android.graphics.Shader;
-import android.support.annotation.AnyThread;
-import android.support.annotation.WorkerThread;
-import android.support.annotation.ColorInt;
+import androidx.annotation.AnyThread;
+import androidx.annotation.WorkerThread;
+import androidx.annotation.ColorInt;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;

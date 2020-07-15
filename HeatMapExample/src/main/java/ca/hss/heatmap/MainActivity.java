@@ -1,7 +1,7 @@
 /*
  * MainActivity.java
  *
- * Copyright 2017 Heartland Software Solutions Inc.
+ * Copyright 2020 Heartland Software Solutions Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,8 @@ package ca.hss.heatmap;
 
 import android.graphics.Color;
 import android.os.AsyncTask;
-import android.support.annotation.AnyThread;
-import android.support.v4.util.ArrayMap;
-import android.support.v7.app.AppCompatActivity;
+import androidx.annotation.AnyThread;
+import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -30,6 +29,7 @@ import android.widget.CompoundButton;
 import java.util.Map;
 import java.util.Random;
 
+import androidx.collection.ArrayMap;
 import ca.hss.heatmaplib.HeatMap;
 import ca.hss.heatmaplib.HeatMapMarkerCallback;
 
@@ -106,14 +106,17 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         }
     }
 
+    @SuppressWarnings("SameParameterValue")
     private float clamp(float value, float min, float max) {
         return value * (max - min) + min;
     }
 
+    @SuppressWarnings("SameParameterValue")
     private double clamp(double value, double min, double max) {
         return value * (max - min) + min;
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static int doGradient(double value, double min, double max, int min_color, int max_color) {
         if (value >= max) {
             return max_color;
