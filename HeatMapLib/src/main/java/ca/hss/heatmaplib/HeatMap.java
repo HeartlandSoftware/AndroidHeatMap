@@ -764,12 +764,7 @@ public class HeatMap extends View implements View.OnTouchListener {
                     clampAlpha = opacity;
                 else {
                     if (alpha < maxOpacity) {
-                        if (alpha < minOpacity) {
-                            clampAlpha = minOpacity;
-                        }
-                        else {
-                            clampAlpha = alpha;
-                        }
+                        clampAlpha = Math.max(alpha, minOpacity);
                     }
                     else {
                         clampAlpha = maxOpacity;
