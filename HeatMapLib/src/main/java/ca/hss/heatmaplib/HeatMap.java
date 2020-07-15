@@ -793,7 +793,7 @@ public class HeatMap extends View implements View.OnTouchListener {
             for (DataPoint point : data) {
                 float rx = (point.x * rwidth) + mLeft;
                 float ry = (point.y * rheight) + mTop;
-                mMarkerCallback.drawMarker(canvas, rx, ry);
+                mMarkerCallback.drawMarker(canvas, rx, ry, point);
             }
         }
     }

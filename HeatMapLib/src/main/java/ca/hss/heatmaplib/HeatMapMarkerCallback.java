@@ -28,7 +28,14 @@ import androidx.annotation.ColorInt;
  */
 public interface HeatMapMarkerCallback {
 
-    void drawMarker(Canvas canvas, float x, float y);
+    /**
+     * Draw a marker at the location of a data point.
+     * @param canvas The canvas that the heatmap is being drawn on.
+     * @param x The X location on the canvas that the marker should be drawn.
+     * @param y The Y location on the canvas that the marker should be drawn.
+     * @param point The data point that is being drawn.
+     */
+    void drawMarker(Canvas canvas, float x, float y, HeatMap.DataPoint point);
 
     class CircleHeatMapMarker implements HeatMapMarkerCallback {
 
@@ -39,7 +46,7 @@ public interface HeatMapMarkerCallback {
         }
 
         @Override
-        public void drawMarker(Canvas canvas, float x, float y) {
+        public void drawMarker(Canvas canvas, float x, float y, HeatMap.DataPoint point) {
             canvas.drawCircle(x, y, 10, paint);
         }
     }
