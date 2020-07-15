@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">AndroidHeatMap</string>
+    <string name="render_async">Render the heatmap asynchronously</string>
 </resources>
