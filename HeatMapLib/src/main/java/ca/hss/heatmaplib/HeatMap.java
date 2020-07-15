@@ -98,17 +98,17 @@ public class HeatMap extends View implements View.OnTouchListener {
      * The bounds of actual data. For the sake of efficiency this stops us updating outside
      * of where data is present.
      */
-    private double mRenderBoundaries[] = new double[4];
+    private double[] mRenderBoundaries = new double[4];
 
     /**
      * Colors to be used in building the gradient.
      */
-    private @ColorInt int colors[] = new int[] { 0xffff0000, 0xff00ff00 };
+    private @ColorInt int[] colors = new int[] { 0xffff0000, 0xff00ff00 };
 
     /**
      * The stops to position the colors at.
      */
-    private float positions[] = new float[] { 0.0f, 1.0f };
+    private float[] positions = new float[] { 0.0f, 1.0f };
 
     /**
      * A paint for solid black.
@@ -130,7 +130,7 @@ public class HeatMap extends View implements View.OnTouchListener {
     /**
      * The color palette being used to create the radial gradients.
      */
-    private int palette[] = null;
+    private int[] palette = null;
 
     /**
      * Whether the palette needs refreshed.
@@ -734,7 +734,7 @@ public class HeatMap extends View implements View.OnTouchListener {
             height = maxHeight - y;
 
         //retrieve the modified pixels from the shadow layer
-        int pixels[] = new int[width];
+        int[] pixels = new int[width];
 
         //loop over each retrieved pixel
         for (int j = 0; j < height; j++) {
