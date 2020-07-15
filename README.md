@@ -1,5 +1,4 @@
 [![Release](https://jitpack.io/v/ca.heartlandsoftware/androidheatmap.svg)](https://jitpack.io/#ca.heartlandsoftware/androidheatmap)
-[![Method Count](https://img.shields.io/badge/Methods%20and%20size-105%20|%2014%20KB-e91e63.svg)](http://www.methodscount.com/?lib=ca.heartlandsoftware%3Aandroidheatmap%3A1.1.1)
 [![API](https://img.shields.io/badge/API-18%2B-yellow.svg?style=flat)](https://android-arsenal.com/api?level=18)
 [![Apache 2](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://github.com/HeartlandSoftware/AndroidHeatMap/blob/master/LICENSE)
 
@@ -28,7 +27,7 @@ allprojects {
 
 ```gradle
 dependencies {
-	implementation 'ca.heartlandsoftware:androidheatmap:1.1.1'
+	implementation 'ca.heartlandsoftware:androidheatmap:1.2.0'
 }
 ```
 
@@ -47,7 +46,7 @@ dependencies {
 <dependency>
 	<groupId>ca.heartlandsoftware</groupId>
 	<artifactId>androidheatmap</artifactId>
-	<version>1.1.1</version>
+	<version>1.2.0</version>
 </dependency>
 ```
 
@@ -179,7 +178,7 @@ heatMap.forceRefresh();
 
 ## License
 
-Copyright 2017 Heartland Software Solutions Inc.
+Copyright 2020 Heartland Software Solutions Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
