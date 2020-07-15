@@ -173,6 +173,11 @@ public class HeatMap extends View implements View.OnTouchListener {
     private Integer mMaxHeight = 0;
 
     /**
+     * The aspect ratio scale.
+     */
+    private Float mScale = null;
+
+    /**
      * A listener for click events.
      */
     private OnMapClickListener mListener;
@@ -304,13 +309,13 @@ public class HeatMap extends View implements View.OnTouchListener {
      * The maximum width of the bitmap that is used to render the heatmap.
      * @param width The maximum width in pixels.
      */
-    public void setMaxDrawingWidth(int width) { mMaxWidth = width; }
+    public void setMaxDrawingWidth(int width) { mMaxWidth = width; mScale = null; }
 
     /**
      * The maximum height of the bitmap that is used to render the heatmap.
      * @param height The maximum height in pixels.
      */
-    public void setMaxDrawingHeight(int height) { mMaxHeight = height; }
+    public void setMaxDrawingHeight(int height) { mMaxHeight = height; mScale = null; }
 
     /**
      * Set the color stops used for the heat map's gradient. There needs to be at least 2 stops
@@ -488,18 +493,21 @@ public class HeatMap extends View implements View.OnTouchListener {
     @AnyThread
     @SuppressWarnings("WrongThread")
     private float getScale() {
-        if (mMaxWidth == null || mMaxHeight == null)
-            return 1.0f;
-        float sourceRatio = getWidth() / getHeight();
-        float targetRatio = mMaxWidth / mMaxHeight;
-        float scale;
-        if (sourceRatio < targetRatio) {
-            scale = getWidth() / ((float)mMaxWidth);
+        if (mScale == null) {
+            if (mMaxWidth == null || mMaxHeight == null)
+                mScale = 1.0f;
+            else {
+                float sourceRatio = getWidth() / getHeight();
+                float targetRatio = mMaxWidth / mMaxHeight;
+                if (sourceRatio < targetRatio) {
+                    mScale = getWidth() / ((float) mMaxWidth);
+                }
+                else {
+                    mScale = getHeight() / ((float) mMaxHeight);
+                }
+            }
         }
-        else {
-            scale = getHeight() / ((float)mMaxHeight);
-        }
-        return scale;
+        return mScale;
     }
 
     @AnyThread
@@ -723,6 +731,11 @@ public class HeatMap extends View implements View.OnTouchListener {
         int height = (int)mRenderBoundaries[3];
         int maxWidth = getDrawingWidth();
         int maxHeight = getDrawingHeight();
+
+        if (maxWidth > mShadow.getWidth() && mShadow.getWidth() != 0)
+            maxWidth = mShadow.getWidth();
+        if (maxHeight > mShadow.getHeight() && mShadow.getHeight() != 0)
+            maxHeight = mShadow.getHeight();
 
         if (x < 0)
             x = 0;
